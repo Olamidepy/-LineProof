@@ -1,92 +1,80 @@
-# Contributing to LineProof 🚀
+# Contributing to LineProof
 
-Thank you for your interest in improving LineProof. This document explains how to get started, development workflows, and review expectations.
+Thank you for helping improve LineProof. This document explains the expected development workflow and review standards.
 
 ## Code of Conduct
 
-This project adheres to a [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you agree to uphold that standard.
+This project follows [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). By participating, you agree to uphold it.
 
-## Getting started
+## Getting Started
 
-### Prerequisites
+Prerequisites:
 
-- Node.js >= 18
-- pnpm >= 8
-- Rust >= 1.75 with `wasm32-unknown-unknown` target
-- Docker and Docker Compose
-- `soroban` CLI (`cargo install soroban-cli`)
+- Node.js 18 or newer.
+- pnpm 8 or newer.
+- Rust 1.75 or newer with the `wasm32-unknown-unknown` target.
+- Docker and Docker Compose.
+- Soroban CLI.
 
-### Clone and bootstrap
+Bootstrap:
 
 ```bash
 git clone https://github.com/lineproof/lineproof.git
 cd lineproof
 make install
-make install-sdk
 make install-toolchain
+make build
 ```
 
-### Run tests
+Run checks:
 
 ```bash
 make test
-```
-
-### Lint and format
-
-```bash
 make lint
 ```
 
-## Repository layout
+For a fuller walkthrough, see [docs/developer-onboarding.md](docs/developer-onboarding.md).
 
-```
-contracts/  # Soroban contracts and workspace root
-sdk/        # TypeScript SDK
-examples/   # End-to-end example apps
-docs/       # Developer content
-scripts/    # Local network and deployment helpers
-```
+## Repository Layout
 
-## Developer workflows
+- `contracts/`: Soroban contracts and Rust tests.
+- `sdk/`: TypeScript SDK.
+- `frontend/`: Reference React/Vite application.
+- `backend/`: Reference Express API.
+- `examples/`: Domain-specific sample apps.
+- `docs/`: Architecture, security, testing, deployment, and integration docs.
+- `research/`: Domain research and product notes.
+- `scripts/`: Local deployment helpers.
 
-### Contracts
+## Pull Requests
 
-- Every crate lives under `contracts/`.
-- Feature branches use the `feat/`, `fix/`, `chore/` prefix.
-- Changes include a test that asserts the new behavior.
-- Docs are updated alongside contract changes.
+- Keep changes focused and reviewable.
+- Add or update tests for code changes.
+- Update docs for public behavior changes.
+- Update `CHANGELOG.md` for user-visible changes.
+- Explain any checks you could not run.
+- Do not include generated build output unless the repo explicitly tracks it.
 
-### SDK
+## Commit Style
 
-- Prefer adding typed methods under `sdk/src/`.
-- If a contract entry point changes, add a corresponding unit test in `sdk/tests/`.
-- Changes must pass `make test` and `make lint`.
+Use conventional prefixes when practical:
 
-### Examples
+- `docs:`
+- `feat:`
+- `fix:`
+- `test:`
+- `refactor:`
+- `chore:`
 
-- Examples must be runnable with `docker compose up -d`.
-- They should document any local assumptions (network passphrase, RPC port, etc.).
+## Security-Sensitive Changes
 
-## Pull requests
+Call out security implications when changing:
 
-- Keep PRs focused. If you have unrelated changes, open separate PRs.
-- Update `README.md` or docs if your change impacts public behavior.
-- Confirm tests and builds are green.
-- For code review, open a PR against `main`.
+- Queue ordering or lifecycle transitions.
+- Identity binding or duplicate prevention.
+- Escrow deposit, release, refund, or expiry behavior.
+- Contract authorization or upgrade authority.
+- SDK signing or transaction construction.
+- Any field that could contain personal data.
 
-## Reporting issues
-
-- Use the issue templates and include reproduction steps.
-- Do not share secrets or credentials.
-
-## Security disclosures
-
-Please follow [SECURITY.md](SECURITY.md) for vulnerability reports.
-
-## Style
-
-- Rust: `cargo fmt` and `cargo clippy`
-- TypeScript: follow existing patterns and keep types explicit
-
-Thank you for contributing.
+Security vulnerabilities should be reported through [SECURITY.md](SECURITY.md), not public issues.

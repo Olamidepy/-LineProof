@@ -2,7 +2,7 @@
   "name": "lineproof",
   "version": "0.1.0",
   "private": true,
-  "description": "Kitchen-sink working directory for LineProof project",
+  "description": "Soroban-powered protocol for provably fair, non-transferable waiting lists",
   "scripts": {
     "build": "pnpm run build:contracts && pnpm run build:sdk",
     "build:contracts": "cd contracts && cargo build --target wasm32-unknown-unknown --release",

@@ -1,8 +1,10 @@
-.PHONY: help install install-contracts install-sdk install-toolchain build-contracts build-sdk build \
+.PHONY: help install install-toolchain build-contracts build-sdk build \
   test-contracts test-sdk test lint docs-serve docker-up docker-down clean docker-clean deploy-localnet
 
 CONTRACTS := contracts
 SDK := sdk
+FRONTEND := frontend
+BACKEND := backend
 EXAMPLES := examples
 DOCKER_COMPOSE := docker/docker-compose.yml
 LOCALNET_RPC ?= http://localhost:8000/friendbot
@@ -30,6 +32,8 @@ build: build-contracts build-sdk ## Build both contracts and SDK
 lint: ## Lint Rust and TypeScript
 	cd $(CONTRACTS) && cargo fmt -- --check && cargo clippy -p lineproof-queue-factory -p lineproof-queue -p lineproof-enrollment -p lineproof-escrow -p lineproof-identity
 	pnpm --filter @lineproof/sdk lint
+	pnpm --filter @lineproof/frontend lint
+	pnpm --filter @lineproof/backend lint
 
 docs-serve: ## Preview documentation locally
 	python3 -m http.server 8000 --directory docs
@@ -45,7 +49,7 @@ docker-clean: docker-down ## Remove local testnet state
 
 deploy-localnet: docker-up ## Deploy local testnet and fund accounts
 	@until curl -s $(LOCALNET_RPC) >/dev/null; do echo "Waiting for Friendbot..."; sleep 2; done
-	cd scripts && ./init_localnet.sh
+	./scripts/deploy_localnet.sh
 
 clean: ## Remove build artifacts and local net data
-	rm -rf $(CONTRACTS)/target $(SDK)/dist $(EXAMPLES)/*/node_modules $(EXAMPLES)/*/dist
+	rm -rf $(CONTRACTS)/target $(SDK)/dist $(FRONTEND)/dist $(BACKEND)/dist $(EXAMPLES)/*/node_modules $(EXAMPLES)/*/dist

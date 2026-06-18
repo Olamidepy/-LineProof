@@ -1,331 +1,166 @@
 # LineProof
 
-> **Provably Fair Waiting Lists for High-Demand Services**
+Provably fair, non-transferable waiting lists for high-demand services.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Stellar](https://img.shields.io/badge/Built%20for-Stellar-green)](https://stellar.org)
-[![Soroban](https://img.shields.io/badge/Built%20with-Soroban-green)](https://soroban.stellar.org)
+LineProof is an open-source protocol built for Stellar and Soroban. It helps organizations run auditable queues for oversubscribed resources such as visa appointments, healthcare services, university admissions, event ticketing, and product launches. Queue positions are bound to participant identities, state transitions are emitted as events, and optional escrow rules make payment release and refunds verifiable.
 
-LineProof is an open-source protocol built on **Stellar** and **Soroban** that enables organizations to create transparent, auditable, and **non-transferable** waiting lists for oversubscribed resources. Queue positions cannot be transferred, sold, or manipulated—making fairness verifiable infrastructure.
+## Why LineProof Exists
 
----
+Traditional waiting lists are usually administered in private databases. Applicants cannot independently verify their position, operators can make opaque exceptions, and scalpers can resell access when queue positions behave like transferable assets.
 
-## Problem Statement
+LineProof moves the critical fairness rules into Soroban contracts:
 
-Modern waiting lists for high-demand services suffer from systemic failures:
+- Queue positions are non-transferable by protocol.
+- Enrollment is identity-bound to reduce duplicate entries.
+- Queue state changes follow an explicit lifecycle.
+- Escrow deposits can be released, refunded, or expired through defined rules.
+- Events create an auditable trail for participants, operators, and third-party reviewers.
 
-| Problem | Impact |
-|---------|--------|
-| **Scalping & Queue Jumping** | Bots and resellers capture positions, sell them at premium prices |
-| **Opacity** | Applicants cannot verify their position is legitimate |
-| **Favoritism** | Manual overrides create unequal access |
-| **Duplicate Exploits** | Users game multi-entry rules |
-| **Trust Gaps** | Organizations must centrally monitor, increasing cost and risk |
-| **Bypassing Eligibility** | Ineligible participants circumvent rules |
+## Repository Status
 
-**Concert tickets, sneaker drops, visa appointments, housing lotteries, scholarship allocations, healthcare scheduling, university admissions**—all suffer from the same root cause: waiting lists that are *administered*, not *verified*.
+This repository is an early implementation scaffold. It contains Soroban contract crates, a TypeScript SDK package, reference frontend and backend applications, examples, CI configuration, and documentation. Some advanced roadmap items, including verifiable randomness, production-grade identity verification, multisig governance, and formal verification, are planned but not complete.
 
----
-
-## Why Existing Solutions Fail
-
-### Database-Backed Queues
-- Admin-controlled; no independent verification
-- Subject to insider manipulation
-- No cryptographic proof of position
-- No escrow enforcement
-
-### NFT-Based Queues
-- Positions remain transferable (scalping enabled)
-- Gas costs on congested networks
-- Metadata can be altered by issuer
-- No deterministic advancement
-
-### First-Come-First-Serve
-- Favors bots over humans
-- Timezone and latency exploitation
-- No eligibility enforcement
-- No fair randomization
-
-**None of these provide cryptographic guarantees of fairness.**
-
----
-
-## Proposed Solution
-
-LineProof replaces trust with **cryptographic verifiability**:
+## Architecture
 
 ```
-Organization  →  Deploys Soroban Queue Contract
-                        ↓
-Applicant     →  Enrolls with identity binding
-                        ↓
-Contract      →  Assigns non-transferable position (token)
-                        ↓
-Timeline      →  Advances deterministically or by admin action (logged on-chain)
-                        ↓
-Service       →  Accepts on-chain proof of position
+participants / operators
+          |
+          v
+frontend and backend reference apps
+          |
+          v
+TypeScript SDK
+          |
+          v
+Soroban contracts on Stellar
+          |
+          +-- lineproof-queue-factory
+          +-- lineproof-queue
+          +-- lineproof-enrollment
+          +-- lineproof-identity
+          +-- lineproof-escrow
 ```
 
-**Key Design Principles:**
-- Positions are **non-transferable** by protocol (no trade, no resale)
-- Enrollment is **identity-bound** to prevent duplicates
-- Advancement is **deterministic or transparently logged**
-- All state transitions emit **verifiable events**
-- Escrow holdings are **hardened against misappropriation**
+Core directories:
 
----
+- `contracts/`: Rust/Soroban workspace for protocol contracts.
+- `sdk/`: TypeScript SDK for application integration.
+- `frontend/`: Reference React/Vite application.
+- `backend/`: Reference Express API.
+- `examples/`: Domain-specific sample integrations.
+- `docs/`: Architecture, lifecycle, security, testing, and onboarding docs.
+- `research/`: Domain research that informs product and protocol design.
 
-## Core Features
+See [ARCHITECTURE.md](ARCHITECTURE.md) and [docs/system-overview.md](docs/system-overview.md) for the detailed system model.
 
-### Non-Transferable Queue Positions
-Positions are strictly bound to the enrolling identity. Any transfer attempt reverts at the contract level. Scalping is architecturally impossible.
+## Queue Lifecycle
 
-### Identity Binding & Duplicate Prevention
-Smart contracts enforce one-position-per-identity per queue. Duplicate detection is on-chain and auditable.
+Queues move through a constrained lifecycle:
 
-### Deterministic Advancements
-Queue advancement follows fixed rules (timers, capacity, priority tiers) encoded in Soroban contracts. No off-chain discretion beyond pre-declared parameters.
+1. `Draft`: configuration is prepared before public enrollment.
+2. `EnrollmentOpen`: eligible participants can enroll.
+3. `EnrollmentClosed`: enrollment is locked and the final participant set is auditable.
+4. `AdvancementActive`: positions are advanced according to configured rules.
+5. `Closed`: no further enrollment or advancement occurs.
 
-### Optional Escrow Module
-Organizations can require payments collected at enrollment to be held in escrow and released or refunded by deterministic protocol rules—not manual review.
+See [docs/queue-lifecycle.md](docs/queue-lifecycle.md) for transition rules, invariants, and failure handling.
 
-### Verifiable Event Log
-Every significant action emits a Soroban event. Auditors, applicants, and the public can verify queue integrity without trusting the operator.
+## Anti-Scalping Model
 
-### Version Management
-QueueFactory supports semantic versioning of queue contracts. Organizations can upgrade without breaking historical audit trails.
+LineProof does not mint transferable queue assets. A position is bound to the enrolling identity and transfer checks reject movement to a different identity. This prevents straightforward resale of queue positions while still leaving room for future integrations with stronger off-chain identity verification.
 
----
+See [docs/anti-scalping.md](docs/anti-scalping.md).
 
-## Architecture Overview
+## Escrow Model
 
-```
-┌───────────────────────────────────────────────────────────┐
-│                    LineProof Protocol                      │
-├──────────────┬──────────────────┬──────────────────────────┤
-│   Queue      │   Enrollment     │   Escrow                 │
-│   Factory    │   Module         │   Contract               │
-├──────────────┼──────────────────┼──────────────────────────┤
-│  - Deploy    │  - Enroll        │  - Hold                  │
-│  - Register  │  - Validate      │  - Release               │
-│  - Version   │  - Detect dupes  │  - Refund                │
-│  - Metadata  │  - Bind identity │  - Reserve               │
-├──────────────┴──────────────────┴──────────────────────────┤
-│                   Soroban Runtime                         │
-├───────────────────────────────────────────────────────────┤
-│                    Stellar Network                        │
-└───────────────────────────────────────────────────────────┘
+Queues can require escrow deposits. Deposits enter an `Active` state and can later become:
 
-   ┌──────────────────────────────────────────────────────┐
-   │              TypeScript SDK (@lineproof/sdk)         │
-   │  - QueueClient   - EscrowClient   - IdentityClient   │
-   └──────────────────────────────────────────────────────┘
-```
+- `Released` when the participant is served.
+- `Refunded` when the queue is cancelled or the participant is not served.
+- `Expired` when a configured recovery period elapses.
 
-**Protocol Layers:**
-1. **Settlement Layer** — Stellar for payment channels, XLM escrow backing
-2. **Contract Layer** — Soroban smart contracts enforcing queue logic
-3. **SDK Layer** — TypeScript/JS client for application integration
-4. **Application Layer** — Consumer-facing drop platforms, government portals
-
----
+See [docs/escrow-model.md](docs/escrow-model.md).
 
 ## Quick Start
 
-### Prerequisites
-- Node.js ≥ 18
-- pnpm ≥ 8
-- Rust ≥ 1.75 with wasm32-unknown-unknown target
-- Docker (optional for local soroban network)
+Prerequisites:
 
-### Installation
+- Node.js 18 or newer
+- pnpm 8 or newer
+- Rust 1.75 or newer
+- `wasm32-unknown-unknown` Rust target
+- Docker and Docker Compose for local network work
+- Soroban CLI for contract deployment
 
 ```bash
 git clone https://github.com/lineproof/lineproof.git
 cd lineproof
-
-# Install SDK
-pnpm install
-
-# Build Soroban contracts
-pnpm run build:contracts
-
-# Build TypeScript SDK
-pnpm run build:typescript
+make install
+make install-toolchain
+make build
+make test
 ```
 
-### Deploy a Local Testnet
+Start local services:
 
 ```bash
-# Start local Soroban network (Docker)
-docker compose -f docker/docker-compose.yml up -d
-
-# Initialize network and fund accounts
-soroban network add --local friendbot-url http://localhost:8000/friendbot
-soroban config identity generate deployer
-soroban config identity address deployer
-
-# Deploy factory
-soroban contract deploy \
-  --wasm contracts/target/wasm32-unknown-unknown/release/lineproof_queue_factory.wasm \
-  --source deployer \
-  --network local
+make docker-up
+make deploy-localnet
 ```
 
-### Create Your First Queue
+Create a queue with the SDK:
 
 ```typescript
-import { LineProofClient, QueueFactory } from "@lineproof/sdk";
+import { AdvancementRule, LineProofClient, NetworkPassphrase } from "@lineproof/sdk";
 
-const client = new LineProofClient({ networkPassphrase: NetworkPassphrase.TESTNET });
+const client = new LineProofClient({
+  networkPassphrase: NetworkPassphrase.TESTNET,
+  rpcServerUrl: "https://soroban-testnet.stellar.org",
+  privateKey: process.env.STELLAR_PRIVATE_KEY,
+});
 
-const factory = client.deployFactory();
-await factory.createQueue({
-  name: "Sneaker Drop #001",
-  slug: "sneaker-drop-001",
+const factory = await client.deployFactory();
+
+const queueAddress = await factory.createQueue({
+  slug: "product-launch-001",
+  name: "Product Launch #001",
   maxPositions: 500,
-  enrollmentOpenAt: new Date("2026-07-01T00:00:00Z"),
-  enrollmentCloseAt: new Date("2026-07-02T00:00:00Z"),
+  enrollmentOpenAt: Math.floor(Date.now() / 1000),
+  enrollmentCloseAt: Math.floor(Date.now() / 1000) + 86400,
   advancementRule: AdvancementRule.FIRST_IN_FIRST_OUT,
   escrowRequired: true,
-  escrowAsset: nativeAssetSymbol,
+  escrowAsset: "native",
   escrowAmountReadable: 150,
 });
+
+console.log(queueAddress);
 ```
 
----
+## Documentation
 
-## Repository Structure
+- [ARCHITECTURE.md](ARCHITECTURE.md): system architecture and contract boundaries.
+- [ROADMAP.md](ROADMAP.md): planned milestones.
+- [CHANGELOG.md](CHANGELOG.md): unreleased and released changes.
+- [GOVERNANCE.md](GOVERNANCE.md): decision-making and maintainer process.
+- [CONTRIBUTING.md](CONTRIBUTING.md): contributor workflow.
+- [docs/system-overview.md](docs/system-overview.md): protocol overview.
+- [docs/queue-lifecycle.md](docs/queue-lifecycle.md): queue states and transitions.
+- [docs/anti-scalping.md](docs/anti-scalping.md): non-transferability and abuse resistance.
+- [docs/escrow-model.md](docs/escrow-model.md): escrow states, release, refund, and expiry.
+- [docs/security-considerations.md](docs/security-considerations.md): security properties and limitations.
+- [docs/threat-model.md](docs/threat-model.md): attacker goals, assets, boundaries, and mitigations.
+- [docs/sdk-architecture.md](docs/sdk-architecture.md): SDK layers and design principles.
+- [docs/testing-strategy.md](docs/testing-strategy.md): test coverage expectations.
+- [docs/deployment-strategy.md](docs/deployment-strategy.md): local, testnet, and production deployment process.
+- [docs/developer-onboarding.md](docs/developer-onboarding.md): setup and first contribution guide.
+- [docs/use-cases.md](docs/use-cases.md): domain-specific integration patterns.
 
-```
-lineproof/
-├── README.md                    # You are here
-├── CONTRIBUTING.md              # Contribution guidelines
-├── CODE_OF_CONDUCT.md           # Community standards
-├── SECURITY.md                  # Security policy & disclosure
-├── LICENSE                      # MIT License
-├── ROADMAP.md                   # Project roadmap
-├── package.json                 # Monorepo package manifest
-├── Makefile                     # Developer CLI shortcuts
-│
-├── contracts/                   # Soroban smart contracts (Rust workspace)
-│   ├── Cargo.toml
-│   ├── lineproof-queue-factory/ # Factory for queue deployment
-│   ├── lineproof-queue/         # Core queue contract
-│   ├── lineproof-enrollment/    # Enrollment logic
-│   ├── lineproof-escrow/        # Payment escrow
-│   └── lineproof-identity/      # Identity binding & non-transferability
-│
-├── sdk/                         # TypeScript SDK (pnpm workspace)
-│   ├── package.json
-│   ├── tsconfig.json
-│   ├── src/
-│   │   ├── client.ts            # LineProofClient
-│   │   ├── queue.ts             # QueueClient
-│   │   ├── enrollment.ts        # EnrollmentClient
-│   │   ├── escrow.ts            # EscrowClient
-│   │   ├── identity.ts          # IdentityClient
-│   │   └── types.ts             # TypeScript type definitions
-│   └── tests/
-│
-├── examples/                    # Sample applications
-│   ├── sneaker-drop/
-│   ├── concert-ticket/
-│   ├── visa-appointment/
-│   └── healthcare-scheduling/
-│
-├── docs/                        # Developer documentation
-│   ├── concepts.md              # Protocol concepts & glossary
-│   ├── queue-lifecycle.md       # Queue state machine
-│   ├── escrow-lifecycle.md      # Escrow state machine
-│   ├── events.md                # Event model reference
-│   ├── fair-invariants.md       # Formal fairness properties
-│   ├── integration-guide.md     # Step-by-step integration
-│   └── api-reference/           # OpenAPI / SDK reference
-│
-├── scripts/                     # Build/deployment automation
-│   ├── deploy.sh
-│   ├── test-setup.sh
-│   └── local-validator.sh
-│
-└── .github/
-    └── workflows/
-        ├── lint.yml
-        ├── test.yml
-        └── security-scan.yml
-```
-
----
-
-## Example Use Cases
-
-### 🥿 Sneaker Drop
-Release limited-edition sneakers. Queue positions are bound to Stellar public keys; advancement is deterministic. Purchasers prove on-chain position at checkout.
-
-### 🎫 Concert Tickets
-Prevent scalping by making ticket claims non-transferable. Escrow holds payment; funds release only when tickets are confirmed. Duplicate wallet signing is blocked by on-chain identity checks.
-
-### 📋 Visa Appointments
-Transparent appointment slots with eligibility verification. Audit log provides government transparency. No backdoor overrides.
-
-### 🏥 Healthcare Scheduling
-Fair allocation of slots across insurance tiers, urgency levels, and seniority rules—all encoded on-chain.
-
-### 🎓 Scholarship Allocation
-Transparent criteria implementation. Population-level anonymized audit data enables public accountability without revealing individual applicants.
-
-### 🏘️ Public Housing
-Anti-manipulation lottery with verifiable randomness source. All excludes and inclusions are explainable and auditable.
-
----
-
-## Roadmap
-
-See [ROADMAP.md](ROADMAP.md) for the full timeline. Key milestones:
-
-- **v0.1** — Core contracts, local testnet, basic TypeScript SDK
-- **v0.2** — Full escrow module, property-based testing, audit readiness
-- **v0.3** — Advanced fairness mechanisms (verifiable randomness, priority tiers)
-- **v0.4** — Public testnet deployment, governance framework
-- **v1.0** — Production-grade security audit, ecosystem SDKs, governance fully decentralized
-
----
+Research notes live in `research/` for healthcare waitlists, visa appointment systems, university admissions, event ticketing, and limited product launches.
 
 ## Contributing
 
-We welcome contributions from Stellar developers, protocol researchers, civil engineers, and fairness advocates. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
-
-- Code style and structure
-- Commit conventions
-- Review process
-- Security disclosures
-
-All participants are expected to adhere to our [Code of Conduct](CODE_OF_CONDUCT.md).
-
----
-
-## Security
-
-LineProof handles real-world resources and sensitive user data. Security is our highest priority.
-
-- **Responsible disclosure:** See [SECURITY.md](SECURITY.md) for reporting procedures
-- **Audits:** We engage professional audit firms pre-launch
-- **Formal verification:** Target modules are verified formally for safety properties
-- **Threat modeling:** Continuous protocol-level risk assessment
-
----
+Contributions are welcome. Start with [docs/developer-onboarding.md](docs/developer-onboarding.md), then follow [CONTRIBUTING.md](CONTRIBUTING.md). Security reports should follow [SECURITY.md](SECURITY.md), not public issues.
 
 ## License
 
-[MIT](LICENSE) © LineProof Contributors
-
----
-
-## Community
-
-- **GitHub:** [lineproof/lineproof](https://github.com/lineproof/lineproof)
-- **Discord:** Coming soon
-- **Twitter:** Coming soon
-
-Built for the Stellar ecosystem. With support from the Stellar Development Foundation.
+LineProof is released under the [MIT License](LICENSE).
