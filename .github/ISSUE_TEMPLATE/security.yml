@@ -1,0 +1,51 @@
+name: Security Vulnerability
+description: Report a security vulnerability (use this only for non-critical issues; for critical vulnerabilities use private reporting)
+title: "[Security]: "
+labels: ["security", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ⚠️ **For critical vulnerabilities** please use [GitHub private vulnerability reporting](https://github.com/lineproof/lineproof/security/advisories/new) or email **security@lineproof.dev** instead of opening a public issue.
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - Low
+        - Medium
+        - High
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      options:
+        - contracts
+        - sdk
+        - backend
+        - frontend
+        - ci/cd
+        - documentation
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe the vulnerability clearly. Do not include exploit code for high-severity issues.
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: What can an attacker achieve by exploiting this?
+    validations:
+      required: true
+  - type: textarea
+    id: mitigation
+    attributes:
+      label: Suggested mitigation
+      description: Optional — any ideas for how to fix it?
