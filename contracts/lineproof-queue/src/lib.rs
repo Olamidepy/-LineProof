@@ -56,10 +56,13 @@ pub trait Queue {
     fn initialize(env: Env, admin: Address, config: QueueConfig);
     fn open_enrollment(env: Env, admin: Address);
     fn close_enrollment(env: Env, admin: Address);
+    fn enroll_position(env: Env, identity: Address) -> u32;
+    fn cancel_position(env: Env, identity: Address, position_id: u32);
     fn advance(env: Env, admin: Address, batch_size: u32) -> Vec<u32>;
     fn get_position(env: Env, position_id: u32) -> Option<Position>;
     fn get_config(env: Env) -> QueueConfig;
     fn current_position_index(env: Env) -> u32;
+    fn total_enrolled(env: Env) -> u32;
     fn close(env: Env, admin: Address);
 }
 
@@ -94,6 +97,46 @@ impl Queue for QueueImpl {
         config.status = QueueStatus::EnrollmentClosed;
         env.storage().persistent().set(&Symbol::new(&env, "config"), &config);
         emit(&env, Symbol::new(&env, "EnrollmentClosed"), 0, &admin, env.ledger().timestamp());
+    }
+
+    fn enroll_position(env: Env, identity: Address) -> u32 {
+        identity.require_auth();
+        let config = Self::get_config_internal(&env);
+        if !matches!(config.status, QueueStatus::EnrollmentOpen) {
+            panic!("enrollment is not open");
+        }
+        let next_id_key = Symbol::new(&env, "next_id");
+        let next_id: u32 = env.storage().persistent().get(&next_id_key).unwrap_or(1);
+        if next_id > config.max_positions {
+            panic!("queue is full");
+        }
+        let pos = Position {
+            position_id: next_id,
+            enrolled_at: env.ledger().timestamp(),
+            identity: identity.clone(),
+            status: PositionStatus::Pending,
+            advanced_at: None,
+        };
+        let key_pos = Self::position_key(&env, next_id);
+        env.storage().persistent().set(&key_pos, &pos);
+        env.storage().persistent().set(&next_id_key, &(next_id + 1));
+        emit(&env, Symbol::new(&env, "Enrolled"), next_id, &identity, env.ledger().timestamp());
+        next_id
+    }
+
+    fn cancel_position(env: Env, identity: Address, position_id: u32) {
+        identity.require_auth();
+        let mut pos = Self::load_position(&env, position_id);
+        if pos.identity != identity {
+            panic!("not your position");
+        }
+        if !matches!(pos.status, PositionStatus::Pending) {
+            panic!("only pending positions can be cancelled");
+        }
+        pos.status = PositionStatus::Cancelled;
+        let key_pos = Self::position_key(&env, position_id);
+        env.storage().persistent().set(&key_pos, &pos);
+        emit(&env, Symbol::new(&env, "Cancelled"), position_id, &identity, env.ledger().timestamp());
     }
 
     fn advance(env: Env, admin: Address, batch_size: u32) -> Vec<u32> {
@@ -153,6 +196,14 @@ impl Queue for QueueImpl {
             .persistent()
             .get(&Symbol::new(&env, "idx"))
             .unwrap_or(0)
+    }
+
+    fn total_enrolled(env: Env) -> u32 {
+        let next_id: u32 = env.storage()
+            .persistent()
+            .get(&Symbol::new(&env, "next_id"))
+            .unwrap_or(1);
+        if next_id == 0 { 0 } else { next_id - 1 }
     }
 
     fn close(env: Env, admin: Address) {
