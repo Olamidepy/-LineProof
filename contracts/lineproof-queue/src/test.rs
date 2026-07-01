@@ -120,7 +120,76 @@ fn test_current_position_index() {
 }
 
 #[test]
-fn test_close_moves_to_final_state() {
+fn test_enroll_position_creates_pending() {
+    let (env, admin) = setup();
+    let config = make_config(&env, &admin);
+    QueueImpl::initialize(env.clone(), admin.clone(), config);
+    QueueImpl::open_enrollment(env.clone(), admin.clone());
+
+    let user = Address::new(&env, &[42u8; 7]);
+    let pos_id = QueueImpl::enroll_position(env.clone(), user.clone());
+    assert_eq!(pos_id, 1);
+
+    let loaded = QueueImpl::get_position(env.clone(), pos_id).unwrap();
+    assert_eq!(loaded.identity, user);
+    assert!(matches!(loaded.status, PositionStatus::Pending));
+}
+
+#[test]
+#[should_panic(expected = "enrollment is not open")]
+fn test_enroll_position_rejects_when_not_open() {
+    let (env, admin) = setup();
+    let config = make_config(&env, &admin);
+    QueueImpl::initialize(env.clone(), admin.clone(), config);
+    // enrollment not opened
+    let user = Address::new(&env, &[43u8; 7]);
+    QueueImpl::enroll_position(env, user);
+}
+
+#[test]
+fn test_cancel_position() {
+    let (env, admin) = setup();
+    let config = make_config(&env, &admin);
+    QueueImpl::initialize(env.clone(), admin.clone(), config);
+    QueueImpl::open_enrollment(env.clone(), admin.clone());
+
+    let user = Address::new(&env, &[44u8; 7]);
+    let pos_id = QueueImpl::enroll_position(env.clone(), user.clone());
+    QueueImpl::cancel_position(env.clone(), user.clone(), pos_id);
+
+    let loaded = QueueImpl::get_position(env.clone(), pos_id).unwrap();
+    assert!(matches!(loaded.status, PositionStatus::Cancelled));
+}
+
+#[test]
+#[should_panic(expected = "not your position")]
+fn test_cancel_position_wrong_identity() {
+    let (env, admin) = setup();
+    let config = make_config(&env, &admin);
+    QueueImpl::initialize(env.clone(), admin.clone(), config);
+    QueueImpl::open_enrollment(env.clone(), admin.clone());
+
+    let user = Address::new(&env, &[45u8; 7]);
+    let other = Address::new(&env, &[46u8; 7]);
+    let pos_id = QueueImpl::enroll_position(env.clone(), user.clone());
+    QueueImpl::cancel_position(env, other, pos_id);
+}
+
+#[test]
+fn test_total_enrolled() {
+    let (env, admin) = setup();
+    let config = make_config(&env, &admin);
+    QueueImpl::initialize(env.clone(), admin.clone(), config);
+    QueueImpl::open_enrollment(env.clone(), admin.clone());
+
+    assert_eq!(QueueImpl::total_enrolled(env.clone()), 0);
+    let u1 = Address::new(&env, &[50u8; 7]);
+    let u2 = Address::new(&env, &[51u8; 7]);
+    QueueImpl::enroll_position(env.clone(), u1);
+    QueueImpl::enroll_position(env.clone(), u2);
+    assert_eq!(QueueImpl::total_enrolled(env), 2);
+}
+
     let (env, admin) = setup();
     let config = make_config(&env, &admin);
     QueueImpl::initialize(env.clone(), admin.clone(), config);
