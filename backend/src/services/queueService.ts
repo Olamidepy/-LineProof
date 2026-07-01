@@ -1,3 +1,5 @@
+export type QueueStatus = 'Draft' | 'Open' | 'AdvancementActive' | 'Closed';
+
 export type Queue = {
   id: string;
   name: string;
@@ -5,10 +7,20 @@ export type Queue = {
   description: string;
   maxPositions: number;
   enrolled: number;
-  status: 'Draft' | 'Open' | 'Closed';
+  advanced: number;
+  status: QueueStatus;
   advancementRule: 'FIFO' | 'Priority' | 'VerifiableRandomness';
   escrowAsset: string;
   escrowAmount: number;
+  createdAt: string;
+};
+
+export type QueueStats = {
+  queueId: string;
+  total: number;
+  advanced: number;
+  remaining: number;
+  percentAdvanced: number;
 };
 
 const FIXTURE_QUEUES: Queue[] = [
@@ -19,10 +31,12 @@ const FIXTURE_QUEUES: Queue[] = [
     description: 'Limited-edition sneaker release with non-transferable queue positions and escrow hold.',
     maxPositions: 250,
     enrolled: 187,
+    advanced: 0,
     status: 'Open',
     advancementRule: 'FIFO',
     escrowAsset: 'USDC',
     escrowAmount: 150,
+    createdAt: new Date(Date.now() - 86400_000 * 3).toISOString(),
   },
   {
     id: 'visa-appointment-001',
@@ -31,10 +45,12 @@ const FIXTURE_QUEUES: Queue[] = [
     description: 'Deterministic FIFO queue for scheduled visa interviews.',
     maxPositions: 120,
     enrolled: 120,
+    advanced: 120,
     status: 'Closed',
     advancementRule: 'FIFO',
     escrowAsset: 'XLM',
     escrowAmount: 25,
+    createdAt: new Date(Date.now() - 86400_000 * 14).toISOString(),
   },
 ];
 
@@ -44,26 +60,66 @@ export const getQueueById = (id: string): Queue | undefined => {
   return FIXTURE_QUEUES.find((queue) => queue.id === id || queue.slug === id);
 };
 
+export const getQueueStats = (id: string): QueueStats | undefined => {
+  const queue = getQueueById(id);
+  if (!queue) return undefined;
+  return {
+    queueId: queue.id,
+    total: queue.enrolled,
+    advanced: queue.advanced,
+    remaining: queue.enrolled - queue.advanced,
+    percentAdvanced: queue.enrolled > 0 ? Math.round((queue.advanced / queue.enrolled) * 100) : 0,
+  };
+};
+
 export const createQueue = (payload: {
   name: string;
   slug: string;
   maxPositions: number;
   advancementRule?: 'FIFO' | 'Priority' | 'VerifiableRandomness';
   escrowRequired?: boolean;
+  description?: string;
 }): Queue => {
+  if (FIXTURE_QUEUES.some((q) => q.slug === payload.slug || q.id === payload.slug)) {
+    const error = new Error(`Queue with slug "${payload.slug}" already exists`) as Error & { status: number };
+    error.status = 409;
+    throw error;
+  }
   const queue: Queue = {
     id: payload.slug,
     name: payload.name,
     slug: payload.slug,
-    description: 'New queue',
+    description: payload.description ?? 'New queue',
     maxPositions: payload.maxPositions,
     enrolled: 0,
+    advanced: 0,
     status: 'Draft',
     advancementRule: payload.advancementRule ?? 'FIFO',
     escrowAsset: 'XLM',
     escrowAmount: 0,
+    createdAt: new Date().toISOString(),
   };
-
   FIXTURE_QUEUES.push(queue);
+  return queue;
+};
+
+export const advanceQueue = (id: string, batchSize: number): Queue | undefined => {
+  const queue = getQueueById(id);
+  if (!queue) return undefined;
+  if (queue.status === 'Closed') {
+    const error = new Error('Queue is closed') as Error & { status: number };
+    error.status = 409;
+    throw error;
+  }
+  queue.status = 'AdvancementActive';
+  const toAdvance = Math.min(batchSize, queue.enrolled - queue.advanced);
+  queue.advanced += Math.max(0, toAdvance);
+  return queue;
+};
+
+export const closeQueue = (id: string): Queue | undefined => {
+  const queue = getQueueById(id);
+  if (!queue) return undefined;
+  queue.status = 'Closed';
   return queue;
 };
