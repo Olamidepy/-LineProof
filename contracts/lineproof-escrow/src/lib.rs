@@ -187,7 +187,7 @@ impl EscrowImpl {
     }
 }
 
-fn emit(env: &Env, kind: Symbol, queue_id: Symbol, identity: &Address, amount: i128) {
+fn emit(env: &Env, kind: Symbol, queue_id: Symbol, _identity: &Address, _amount: i128) {
     env.events().publish((
         Symbol::new(env, "lineproof.escrow"),
         kind,

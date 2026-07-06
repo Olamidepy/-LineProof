@@ -1,8 +1,6 @@
-use std::panic;
-
 use soroban_sdk::{testutils::Address as _, Address, Env, Symbol};
 
-use crate::{FactoryConfig, QueueFactoryImpl, QueueMetadata};
+use crate::{FactoryConfig, QueueFactoryImpl};
 
 fn setup() -> (Env, Address) {
     let env = Env::default();

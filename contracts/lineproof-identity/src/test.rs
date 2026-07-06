@@ -1,4 +1,3 @@
-use std::panic;
 use soroban_sdk::{testutils::Address as _, Address, Env, Symbol};
 use crate::{BindingStatus, IdentityImpl};
 

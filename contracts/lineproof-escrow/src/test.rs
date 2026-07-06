@@ -1,8 +1,6 @@
-use std::panic;
-
 use soroban_sdk::{testutils::Address as _, Address, Env, Symbol};
 
-use crate::{EscrowConfig, EscrowImpl, EscrowRecord, EscrowStatus};
+use crate::{EscrowConfig, EscrowImpl, EscrowStatus};
 
 fn setup() -> (Env, Address) {
     let env = Env::default();

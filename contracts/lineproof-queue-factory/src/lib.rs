@@ -25,16 +25,6 @@ pub struct FactoryConfig {
     pub max_version: u32,
 }
 
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct FactoryEvent {
-    pub kind: Symbol,
-    pub queue_slug: Symbol,
-    pub contract_id: BytesN<32>,
-    pub version: u32,
-    pub timestamp: u64,
-}
-
 #[contract]
 pub trait QueueFactory {
     fn initialize(env: Env, admin: Address);
@@ -207,13 +197,12 @@ impl QueueFactoryImpl {
     }
 }
 
-fn emit(env: &Env, kind: Symbol, slug: Symbol, contract_id: BytesN<32>, version: u32, timestamp: u64) {
-    let event = FactoryEvent { kind, queue_slug: slug, contract_id, version, timestamp };
+fn emit(env: &Env, kind: Symbol, slug: Symbol, _contract_id: BytesN<32>, version: u32, _timestamp: u64) {
     env.events().publish((
         Symbol::new(env, "lineproof.factory"),
-        event.kind,
-        event.queue_slug,
-        event.version,
+        kind,
+        slug,
+        version,
     ));
 }
 

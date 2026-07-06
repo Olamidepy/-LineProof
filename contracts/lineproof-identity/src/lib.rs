@@ -79,7 +79,7 @@ impl Identity for IdentityImpl {
         record.queues.iter().any(|q| q == &queue_id)
     }
 
-    fn can_transfer(env: Env, from: Address, to: Address, queue_id: Symbol) -> bool {
+    fn can_transfer(_env: Env, from: Address, to: Address, _queue_id: Symbol) -> bool {
         if from == to {
             return true;
         }
@@ -161,7 +161,7 @@ impl IdentityImpl {
     }
 }
 
-fn emit(env: &Env, kind: Symbol, queue_id: Symbol, identity: &Address, timestamp: u64) {
+fn emit(env: &Env, kind: Symbol, queue_id: Symbol, _identity: &Address, _timestamp: u64) {
     env.events().publish((
         Symbol::new(env, "lineproof.identity"),
         kind,

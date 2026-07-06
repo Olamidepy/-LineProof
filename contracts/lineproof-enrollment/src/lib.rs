@@ -11,7 +11,6 @@ pub struct EnrollmentProof {
 
 #[contracttype]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[contracttype]
 pub enum DuplicateBehavior {
     Reject,
     GrantWaitingList,
@@ -166,7 +165,7 @@ impl EnrollmentImpl {
     }
 }
 
-fn emit(env: &Env, kind: Symbol, queue_id: Symbol, identity: &Address, timestamp: u64, hash: [u8; 32]) {
+fn emit(env: &Env, kind: Symbol, queue_id: Symbol, _identity: &Address, _timestamp: u64, _hash: [u8; 32]) {
     env.events().publish((
         Symbol::new(env, "lineproof.enrollment"),
         kind,

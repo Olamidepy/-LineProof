@@ -42,15 +42,6 @@ pub enum PositionStatus {
     Cancelled,
 }
 
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct QueueEvent {
-    pub kind: Symbol,
-    pub position_id: u32,
-    pub identity: Address,
-    pub timestamp: u64,
-}
-
 #[contract]
 pub trait Queue {
     fn initialize(env: Env, admin: Address, config: QueueConfig);
@@ -236,7 +227,7 @@ impl QueueImpl {
     }
 }
 
-fn emit(env: &Env, kind: Symbol, position_id: u32, identity: &Address, timestamp: u64) {
+fn emit(env: &Env, kind: Symbol, position_id: u32, _identity: &Address, _timestamp: u64) {
     env.events().publish((
         Symbol::new(env, "lineproof.queue"),
         kind,

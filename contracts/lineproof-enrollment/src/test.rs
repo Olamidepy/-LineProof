@@ -1,8 +1,6 @@
-use std::panic;
-
 use soroban_sdk::{testutils::Address as _, Address, Env, Symbol};
 
-use crate::{DuplicateBehavior, EnrollmentImpl, EnrollmentRecord};
+use crate::{DuplicateBehavior, EnrollmentImpl};
 
 fn setup() -> (Env, Address) {
     let env = Env::default();
