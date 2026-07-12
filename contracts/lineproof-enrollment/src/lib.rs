@@ -94,7 +94,14 @@ impl Enrollment for EnrollmentImpl {
             panic!("not enrolled");
         }
         env.storage().persistent().remove(&key);
-        emit(&env, Symbol::new(&env, "Cancelled"), queue_id, &caller, env.ledger().timestamp(), [0u8; 32]);
+        emit(
+            &env,
+            Symbol::new(&env, "Cancelled"),
+            queue_id,
+            &caller,
+            env.ledger().timestamp(),
+            [0u8; 32],
+        );
     }
 
     fn is_enrolled(env: Env, identity: Address, queue_id: Symbol) -> bool {
@@ -112,7 +119,9 @@ impl Enrollment for EnrollmentImpl {
 
     fn set_duplicate_behavior(env: Env, admin: Address, behavior: DuplicateBehavior) {
         admin.require_auth();
-        env.storage().persistent().set(&Symbol::new(&env, "dup_behavior"), &behavior);
+        env.storage()
+            .persistent()
+            .set(&Symbol::new(&env, "dup_behavior"), &behavior);
     }
 
     fn finalize_enrollment(env: Env, admin: Address, identity: Address, queue_id: Symbol) {

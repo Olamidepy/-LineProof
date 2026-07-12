@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, ShieldCheck, Users, Clock } from 'lucide-react';
 import { useQueue } from '../hooks/useQueues';
@@ -7,6 +7,16 @@ import QueueStatusBadge from '../components/QueueStatusBadge';
 import ProgressBar from '../components/ProgressBar';
 import Spinner from '../components/Spinner';
 import CopyButton from '../components/CopyButton';
+
+function Stat({ label, value, icon }: { label: string; value: string; icon: ReactNode }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <div className="text-slate-500">{icon}</div>
+      <p className="mt-2 text-xs text-slate-500">{label}</p>
+      <p className="mt-0.5 text-sm font-semibold text-slate-900">{value}</p>
+    </div>
+  );
+}
 
 export default function QueuePage() {
   const { id = '' } = useParams();
@@ -18,7 +28,7 @@ export default function QueuePage() {
 
   const looksLikeStellar = (v: string) => /^G[A-Z0-9]{55}$/.test(v);
 
-  const handleEnroll = async (e: React.FormEvent) => {
+  const handleEnroll = async (e: FormEvent) => {
     e.preventDefault();
     setInputError(null);
     if (!looksLikeStellar(publicKey)) {
@@ -105,16 +115,6 @@ export default function QueuePage() {
           </form>
         )}
       </section>
-    </div>
-  );
-}
-
-function Stat({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-      <div className="text-slate-500">{icon}</div>
-      <p className="mt-2 text-xs text-slate-500">{label}</p>
-      <p className="mt-0.5 text-sm font-semibold text-slate-900">{value}</p>
     </div>
   );
 }
