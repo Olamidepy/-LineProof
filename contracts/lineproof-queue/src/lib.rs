@@ -1,4 +1,4 @@
-use soroban_sdk::{contractimpl, contracttype, Address, Env, Symbol, Vec};
+use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Symbol, Vec};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -267,4 +267,5 @@ fn emit(env: &Env, kind: Symbol, position_id: u32, _identity: &Address, _timesta
         .publish((Symbol::new(env, "lineproof.queue"), kind, position_id));
 }
 
+#[cfg(test)]
 mod test;
